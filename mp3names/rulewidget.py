@@ -1,0 +1,103 @@
+# -*- coding: utf-8 -*-
+import sys
+import os
+import logging
+import random
+
+from functools import partial
+
+import PyQt4
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+
+#import testCheckbox
+
+
+
+class RuleWidget(QWidget):
+    
+    moveUp = SIGNAL('moveUp()')
+    moveDown = SIGNAL('moveDown()')
+    #checkBox = None
+    
+    def __init__(self, parent):
+        ''' ''' 
+        self.log = logging.getLogger('RuleWidget')
+        #log = logging.getLogger('%s.__init__' % self.log.name)
+        #self.log.debug('__init__ start')
+        super(RuleWidget, self).__init__(parent)
+        self.setObjectName('RuleWidget')
+        self.parent = parent
+        self.setup()
+        #self.log.debug('__init__ end')
+        return None
+    
+    def setup(self):
+        ''' ''' 
+        #log = logging.getLogger('%s.setup' % self.log.name)
+        #self.log.debug('setup start')
+        hLayout = QHBoxLayout()
+        #self.setLayout(hLayout)
+        hLayout.setObjectName('RuleWidgetHorizontalLayout')
+        self.checkBox = QCheckBox(self)
+        hLayout.addWidget(self.checkBox)
+        
+        vLayout = QVBoxLayout()
+        vLayout.setObjectName('RuleWidgetVerticalLayout')
+        vLayout.setAlignment(Qt.AlignRight)
+        font = QFont()
+        font.setPointSize(8)
+        buttonUp = QPushButton(self)
+        buttonUp.setObjectName('buttonUp')
+        size = QSize(15, 15)
+        buttonUp.setFixedSize(size)
+        buttonUp.setToolTip('Move up')
+        buttonUp.setFont(font)
+        buttonUp.setFlat(True)
+        buttonUp.setText(u'\u25B4')
+        vLayout.addWidget(buttonUp)
+        
+        buttonDown = QPushButton(self)
+        buttonDown.setObjectName('buttonDown')
+        buttonDown.setFixedSize(size)
+        buttonDown.setToolTip('Move down')
+        buttonDown.setFont(font)
+        buttonDown.setFlat(True)
+        buttonDown.setText(u'\u25BE')
+        vLayout.addWidget(buttonDown)
+        
+        #hLayout.addChildLayout(vLayout)
+        hLayout.addLayout(vLayout)
+        self.setLayout(hLayout)
+        
+        self.connect(self.checkBox, SIGNAL("toggled(bool)"), self.toggled)
+        self.connect(buttonUp, SIGNAL("pressed()"), self.buttonUpPressed)
+        self.connect(buttonDown, SIGNAL("pressed()"), self.buttonDownPressed)
+        return None
+    
+    def setText(self, value):
+        ''' ''' 
+        #log = logging.getLogger('%s.setText' % self.log.name)
+        #self.log.debug('setText start')
+        self.checkBox.setText(value)
+        #self.log.debug('setText end')
+        return None
+    
+    def setChecked(self, value):
+        self.checkBox.setChecked(value)
+        return None
+    
+    def isChecked(self):
+        return self.checkBox.isChecked()
+    
+    def toggled(self, b):
+        self.emit(SIGNAL("toggled(bool)"), b)
+        return None
+    
+    def buttonUpPressed(self):
+        self.emit(self.moveUp)
+        return None
+    
+    def buttonDownPressed(self):
+        self.emit(self.moveDown)
+        return None

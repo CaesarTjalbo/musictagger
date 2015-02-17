@@ -1,0 +1,192 @@
+# -*- coding: utf-8 -*-
+import sys
+import os
+import logging
+import random
+
+from functools import partial
+
+import PyQt4
+from PyQt4.QtCore import *
+#from PyQt4.QtCore import QAbstractTableModel
+
+#path
+#directory
+#filename
+
+#filetype
+#tagtype
+
+#track
+#album
+#artist
+#title
+
+
+class QSongModel(QAbstractTableModel):
+    keys = ['tracknumber', 'artist', 'title']
+    
+    def __init__(self, parent = None):
+        ''' 
+        ''' 
+        self.log = logging.getLogger('QSongModel')
+        #self.log.debug('__init__ start')
+        super(QAbstractTableModel, self).__init__(parent)
+        self.rows = list()
+        #self.log.debug('__init__ end')
+        return None
+    
+    def rowCount(self, parent = None):
+        ''' 
+        ''' 
+        #self.log.debug('rowCount start')
+        
+        #self.log.debug('rowCount end')
+        return len(self.rows)
+    
+    def columnCount(self, parent = None):
+        ''' 
+        ''' 
+        #self.log.debug('columnCount start')
+        
+        #self.log.debug('columnCount end')
+        return len(self.keys)
+    
+    def data(self, index, role = None):
+        ''' 
+        ''' 
+        #self.log.debug('data start')
+        if not index.isValid():
+            return QVariant()
+        
+        if index.row() >= len(self.rows) or index.row() < 0:
+            return QVariant()
+        
+        #self.log.debug(self.rows[index.row()])
+        return self.rows[index.row()][index.column()]
+        
+        #self.log.debug('data end')
+        return None
+    
+    def headerData(self, section, orientation, role):
+        ''' 
+        ''' 
+        #self.log.debug('headerData start' + str(section))
+        if section >= 0 and section < len(self.keys):
+            if orientation == Qt.Horizontal and role == Qt.DisplayRole:
+                return self.keys[section]
+        #self.log.debug('headerData end ')
+        return None
+    
+    def setAlbum(self, album):
+        ''' 
+        ''' 
+        #self.log.debug('setAlbum start')
+        if len(album.rows) > 0:
+            for row in album.rows:
+                r = []
+                for key in self.keys:
+                    r.append(row[key])
+                self.rows.append(r)
+        #self.log.debug('setAlbum end')
+        return None
+    
+    #def parent(self):
+        #''' 
+        #''' 
+        ##self.log.debug('parent start')
+        
+        ##self.log.debug('parent end')
+        #return None
+    
+    #def index(self, row, column, parent = PyQt4.QtCore.QModelIndex()):
+        #if parent.isValid():
+            #parent_item = parent.internalPointer()
+            #try:
+                #child = parent_item.ChildRows[row]
+            #except:
+                #return QtCore.QModelIndex()
+        ##else:
+            ##try:
+                ##child = self.card.Sections(self.card.Type.AllSections.\
+                                                ##GetByAlias('Main').ID).Rows[row]
+            ##except:
+                ##return QtCore.QModelIndex()
+        #return self.createIndex(row, column, child)
+    
+    #def flags(self):
+        #''' 
+        #''' 
+        ##self.log.debug('flags start')
+        
+        ##self.log.debug('flags end')
+        #return None
+    
+class Album(object):
+    keys = ['path', 'directory', 'file', 'tracknumber', 'title', 'artist', 'album']
+    def __init__(self):
+        ''' 
+        ''' 
+        #self.log.debug('__init__ start')
+        self.rows = list()
+        
+        #self.log.debug('__init__ end')
+        return None
+    
+    def appendFile(self, fileData):
+        ''' 
+        ''' 
+        #self.log.debug('appendFile start')
+        row = dict()
+        for key in self.keys[:3]:
+            row[key] = fileData[key]
+        self.rows.append(row)
+        
+        #self.log.debug('appendFile end')
+        return None
+    
+    def appendTags(self, index, tagData):
+        ''' 
+        ''' 
+        #self.log.debug('appendTags start')
+        if index < len(self.rows):
+            for key in self.keys[3:]:
+                self.rows[index][key] = tagData[key]
+        #self.log.debug('appendTags end')
+        return None
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    

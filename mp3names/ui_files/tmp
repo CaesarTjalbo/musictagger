@@ -1,0 +1,46 @@
+            audio = ID3(path)
+            for i, key in enumerate(constants.MP3TAGS):
+                try:
+                    if key == 'COMM':
+                        # check if there's more than 1 COMM field
+                        # the problem is that an exsisting COMM field might show up before the field being set here
+                        # in that case the new COMM field won't show up.
+                        try:
+                            a = audio.getall('COMM')
+                            if len(a) > 1:
+                                #audio.delall('COMM') # <- That works fine, the code below triggers the TypeError
+                                
+                                #set them all to empty strings
+                                try:
+                                    dummy = mutagen.id3.COMM
+                                    dummy.text = u''
+                                    dummy.encoding = 3
+                                    v = [dummy for x in range(len(a))]
+                                    audio.setall('COMM', v)
+                                except Exception, e:
+                                    log.debug('trying audio.Setall(\'COMM\')')
+                        except Exception, e:
+                            log.debug('trying audio.Getall(\'COMM\')')
+                            
+                            
+                        s = 'mutagen.id3.%s(encoding = 3, lang = "eng", desc = "", text="%s")' % (key, values[i])
+                    else:
+                        s = 'mutagen.id3.%s(encoding = 3, text=u"%s")' % (key, values[i])
+                    o = eval(s)
+                    audio.add(o)
+                    success = True
+                except ValueError, e:
+                    log.debug('ValueError: %s' % str(e))
+                except Exception, e:
+                    log.error('Error setting mp3 tag %s with value "%s" for file %s' % (key, values[i], path))
+                    log.error(type(e))
+                    log.error(str(e))
+        
+        try:
+            audio.save()
+            success = True
+        except Exception, e:
+            log.error('Error saving tags for file %s' % (path, ))
+            log.error(type(e))
+            log.error(str(e))
+            success = False

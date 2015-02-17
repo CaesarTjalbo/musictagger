@@ -1,0 +1,277 @@
+# -*- coding: utf-8 -*-
+import logging
+
+import re
+import string
+
+from PyQt4.QtCore import QObject, SIGNAL, pyqtSignal, QString, QDir
+
+import constants
+
+class Utils(object):
+    def __init__(self):
+        ''' 
+        ''' 
+        self.log = logging.getLogger('Utils')
+        #self.log.debug('__init__ start')
+        
+        #self.log.debug('__init__ end')
+        return None
+    
+    def getAlbumDataFromDirectoryName(self, directory = None):
+        ''' simple parse of directory to retrieve artist, title and date
+        ''' 
+        #self.log.debug('getAlbumDataFromDirectoryName start')
+        result = {'artist' : '', 'album' : '', 'date' : ''}
+        if directory is not None:
+            directory = unicode(directory)
+            dash = directory.count('-')
+            if dash == 0:
+                pass # difficult
+            if dash == 1:
+                a = directory[:directory.index('-')]
+                t = directory[directory.index('-') + 1:]
+                #a = a.strip()
+                #t = t.strip()
+                result['artist'] = a
+                result['album'] = t
+            if dash > 1:
+                pass
+            
+            pattern = '\(\d\d\d\d\)'
+            #self.log.debug(directory)
+            r = re.search(pattern, directory)
+            if r:
+                
+                result['date'] = directory[r.span()[0] + 1:r.span()[1] - 1]
+                #result['album'] = result['album'][:r.span()[0]] + result['album'][r.span()[1]:]
+                rr = re.search(pattern, result['album'])
+                if rr:
+                    #self.log.debug(result['album'][:rr.span()[0]])
+                    #self.log.debug(result['album'][rr.span()[1]:])
+# remove year from album title
+                    result['album'] = result['album'][:rr.span()[0]] + result['album'][rr.span()[1]:]
+        
+        else:
+            self.log.debug('getAlbumDataFromDirectoryName directory is None')
+        result['artist'] = result['artist'].strip()
+        result['album'] = result['album'].strip()
+        if type(result['artist']) is not str and type(result['artist']) is not unicode:
+            self.log.debug('getAlbumDataFromDirectoryName Invalid type artist' + str(type(result['artist'])))
+        if type(result['album']) is not str and type(result['album']) is not unicode:
+            self.log.debug('getAlbumDataFromDirectoryName Invalid type album' + str(type(result['album'])))
+        if type(result['date']) is not str and type(result['date']) is not unicode:
+            self.log.debug('getAlbumDataFromDirectoryName Invalid type date' + str(type(result['date'])))
+        #self.log.debug('getAlbumDataFromDirectoryName end')
+        return result
+    
+    def getSongDataFromFileName(self, filename):
+        ''' 
+        ''' 
+        #self.log.debug('getSongDataFromFileName start') 
+        log = logging.getLogger('%s.getSongDataFromFileName' % self.log.name)
+        #self.log.debug(filename)
+        #u''
+        tracknumber = ''
+        artist = ''
+        title = ''
+        extension = ''
+        result = dict()
+        
+        result['tracknumber'] = ''
+        result['artist'] = ''
+        result['title'] = ''
+        result['extension'] = ''
+        
+        filename = unicode(filename)
+        
+        # strip extension
+        # try the first part for tracknumber
+        # break the filename on spaces
+        # TODO if 1 part, it's the title, look for underscores some time?
+        # else
+        # try the remainder for a dash
+        # no dash: title
+        #log.debug(len(filename))
+        filename = filename.strip()
+        #log.debug(len(filename))
+        filename, result['extension'] = self._stripExtensionFromFilename(filename)
+        filename, result['tracknumber'] = self._stripTracknumberFromFilename(filename)
+        filename = filename.strip()
+        #log.debug(filename)
+        s_list = filename.split() 
+        if len(s_list) > 0:
+            
+            if len(s_list) == 1:
+                result['title'] = s_list[0]
+                result['artist'] = ''
+                return result
+                
+            if len(s_list) > 1:
+                #filename, result['tracknumber'] = self._stripTracknumberFromFilename(filename)
+                
+                if filename.count('--') > 0:
+                    filename = filename.replace('--', '-')
+                
+                i = 0
+                dash = False
+                slash = False
+                try:
+                    i = filename.index('-')
+                    dash = True
+                except ValueError:
+                    #result['title'] = filename # we can't make any sense of what we find, so hopefully we have a title
+                    #return result
+                    pass
+                
+                if not dash:
+                    try:
+                        i = filename.index('/')
+                        slash = True
+                    except ValueError:
+                        pass
+                
+                if not dash and not slash:
+                    #log.debug('not dash and not slash')
+                    result['title'] = filename # we can't make any sense of what we find, so hopefully we have a title
+                    result['artist'] = ''
+                    return result
+                    
+                if i > 0:
+                    if dash:
+                        c = filename.count('-')
+                        if c == 1:
+                            #log.debug('here')
+                            artist = filename[ : i]
+                            artist = artist.strip()
+                            result['artist'] = artist
+                            title = filename[i + 1:]
+                            title = title.strip()
+                            result['title'] = title
+                            #log.debug('"%s" - "%s"' % (artist, title))
+                        
+                        if c == 2:
+                            pass
+                        if c > 2:
+                            result['title'] = filename
+        #self.log.debug('getSongDataFromFileName end')
+        return result
+    
+    def _stripExtensionFromFilename(self, filename):
+        ''' assume the last part from the filename is the extension, return filename, extension ''' 
+        #self.log.debug('_stripExtensionFromFilename start')
+        filename = unicode(filename)
+        i = filename.rfind('.')
+        if i > 0:
+            try:
+                if filename[i + 1:].lower() in constants.EXTENSION_LIST:
+                    return filename[:i], filename[i + 1:]
+            except IndexError:
+                self.log.error('IndexError %s' % filename)
+                return filename, u''
+        #self.log.debug('_stripExtensionFromFilename end')
+        return filename, u''
+    
+    def _stripTracknumberFromFilename(self, filename):
+        ''' assume the first numbers in the filename we encounter are tracknumber, return filename, tracknumber 
+        1: can't find anything: return filename, ''
+        2: we can only find a tracknumber: return '', tracknumber
+        3: can find something but also a period or a dash, return filename, tracknumber without the punctuation
+        4: return filename, tracknumber''' 
+        #self.log.debug('_stripTracknumberFromFilename start')
+        #self.log.debug(filename)
+        log = logging.getLogger('%s._stripTracknumberFromFilename' % self.log.name)
+        i = 0
+        finalDigit = -1
+        firstNonDigit = -1
+        for i in range(len(filename)):
+            #log.debug('here')
+            if filename[i] in string.digits:
+                #log.debug('in digits')
+                finalDigit = i
+                pass
+            else:
+                firstNonDigit = i
+                break
+
+        if finalDigit == -1:
+            #log.info('no tracknumber')
+            return filename, u''
+        if firstNonDigit == -1:
+            return u'', filename
+        
+        try:
+            tmp = filename[i:]
+            tmp = tmp.strip()
+            if tmp[0] in ['.', '-', '/']:
+                #log.info('cleaning punctuation from tracknumber for %s' % filename)
+                return tmp[1:], filename[:i]
+        except Exception, e:
+            log.debug(type(e))
+            log.debug(str(e))
+        return filename[i:], filename[:i]
+        #self.log.debug('_stripTracknumberFromFilename end')
+        return None
+    
+    def getUniqueStringFromList(self, values):
+        ''' reads a list and returns the item if all items are identical ''' 
+        #self.log.debug('getUniqueStringFromList start')
+        s = set()
+        for value in values:
+            s.add(value)
+        if len(s) == 1:
+            return values[0]
+        #self.log.debug('getUniqueStringFromList end')
+        return ''
+    
+    def changeDictsToLists(self, rows, keys):
+        ''' 
+        ''' 
+        #self.log.debug('changeDictsToLists start')
+        new_rows = list()
+        
+        for row in rows:
+            new_row = list()
+            for key in keys:
+                if key in row:
+                    new_row.append(row[key])
+            new_rows.append(new_row)
+        #self.log.debug('changeDictsToLists end')
+        return new_rows
+    
+    def changeListsToDicts(self, rows, keys):
+        ''' 
+        ''' 
+        #self.log.debug('changeListsToDicts start')
+        new_rows = list()
+        for row in rows:
+            d = dict()
+            if len(row) != len(keys):
+                raise ValueError
+            else:
+                for i, key in enumerate(keys):
+                    d[key] = row[i]
+            new_rows.append(d)
+        #self.log.debug('changeListsToDicts end')
+        return new_rows
+    
+    #def strip_punctuation(self, word):
+        #'''return tuple with punctuation, word, punctuation ''' 
+        ##log = logging.getLogger('%s.strip_punctuation' % self.log.name)
+        ##self.log.debug('strip_punctuation start')
+        #left_punctuation = ''
+        #right_punctuation = ''
+        
+        #if type(word) == str or type(word) == unicode:
+            #i = len(word) - len(word.lstrip(string.punctuation))
+            #left_punctuation = word[:i]
+            #word = word[i:]
+            
+            #i = len(word) - len(word.rstrip(string.punctuation))
+            #right_punctuation = word[len(word) - i:]
+            #word = word[:len(word) - i]
+        ##self.log.debug('strip_punctuation end')
+        #return (left_punctuation, word, right_punctuation)
+    
+    
+

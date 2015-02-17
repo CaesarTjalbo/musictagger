@@ -1,0 +1,5 @@
+[Project]
+Name=mp3names
+Manager=KDevGenericManager
+VersionControl=
+ShowFilesAfterGeneration=mp3names/mp3names
